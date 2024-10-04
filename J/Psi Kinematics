@@ -5,7 +5,7 @@
 
 using namespace std;
 
-void analyzeFF_eicrecon7(){
+void analyzeFF_eicrecon(){
     
     TString fileList = "file.list";
     TString outputName = "ab_test_00mrad_hepmc_";
