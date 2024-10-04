@@ -1,0 +1,1250 @@
+#include <iostream>
+#include <sstream>
+#include <fstream>
+#include <string>
+
+using namespace std;
+
+void analyzeFF_eicrecon7(){
+    
+    TString fileList = "file.list";
+    TString outputName = "ab_test_00mrad_hepmc_";
+    
+    TString date = "10_04_2024_";
+    
+    TString run  = "run_0";
+    
+    cout << "Input FileList: " << fileList << endl;
+    TString fileType_ROOT = ".root";
+    TString outputFileName = outputName + date + run + fileType_ROOT;
+    string fileName;
+    TFile * inputRootFile;
+    TTree * rootTree;
+    cout << "Output file: " << outputFileName << endl;
+    
+    ifstream fileListStream;
+    fileListStream.open(fileList);
+    if(!fileListStream) { cout << "NO_LIST_FILE " << fileList << endl; return;}
+    
+    TLorentzVector vec1, vec2, vec3, vec4, vec5, vec6;
+    TLorentzVector vecjpsi, vec3mc, vecjpsimc;
+    TLorentzVector JPsi1, JPsi2, JPsi22, JPsi222;
+    TLorentzVector rcpv1, rcpv2;
+    TLorentzVector incbeam, incbeame, eq1rc, rcpv1rc;
+    TLorentzVector eq1, iphoton, ijpsi;
+    
+    TH1D *fElectron = new TH1D("fElectron","Final/Scattered Electron", 100, -10, 10);
+    TH1D *fProton= new TH1D("fProton","Final Proton", 100, 4, 12);
+    TH1D *fPositron= new TH1D("fPositron","fp+", 100, -10, 10);
+    TH1D *B0fProton= new TH1D("B0fProton","B0fp", 100, 4, 12);
+    TH1D *RPfProton= new TH1D("RPfProton","RPfp", 100, 4, 12);
+    TH1D *OMDfProton= new TH1D("OMDfProton","OMDfp", 100, 4, 12);
+    
+    TH1D *rcElectron= new TH1D("rcElectron","rcElectron", 100, -10, 10);
+    TH1D *rcPositron= new TH1D("rcPositron","rcPositron", 100, -10, 10);
+    
+    TH1D *diffjpsimass = new TH1D("diffjpsimass","diffjpsimass", 500, -5, 5);
+    TH1D *diffx_v = new TH1D("diffx_v","diffx_v", 500, -5, 5);
+    TH1D *diffx_v2 = new TH1D("diffx_v2","diffx_v2", 500, -5, 5);
+    TH1D *difft = new TH1D("difft","difft", 500, -5, 5);
+    TH1D *diffq2 = new TH1D("diffq2","diffq2", 500, -5, 5);
+    TH1D *diffq2_2 = new TH1D("diffq2_2","diffq2_2", 500, -5, 5);
+    
+    TH1D *JPsiMass1 = new TH1D("JPsiMass1","J/#psi-Mass", 500, -10, 30);
+    TH1D *rcJPsiMass1 = new TH1D("rcJPsiMass1","rcJ/#psi-Mass", 500, -10, 30);
+    TH1D *rcJPsiMass11 = new TH1D("rcJPsiMass11","rcJ/#psi-Mass", 500, -10, 30);
+    TH1D *rcJPsiMass111 = new TH1D("rcJPsiMass111","rcJ/#psi-Mass", 500, -10, 30);
+    
+    TH1D *mtg = new TH1D("mtg","mtg", 4000, 0, 100);
+    TH1D *mtgg = new TH1D("mtgg","mtgg", 4000, 0, 100);
+    TH1D *mtq = new TH1D("mtq","mtq", 50, 0, 12);
+    TH1D *mtqq = new TH1D("mtqq","mtqq", 50, 0, 12);
+    TH1D *mtqq_2 = new TH1D("mtqq_2","mtqq_2", 50, 0, 12);
+    
+    TH1D *xb = new TH1D("xb","xb", 80, 0.001, 0.1);
+    TH1D *xb1 = new TH1D("xb1","xb1", 80, 0.001, 0.1);
+    TH1D *xb2 = new TH1D("xb2","xb2", 80, 0.001, 0.1);
+    TH1D *xv = new TH1D("xv","xv", 80, 0.001, 0.1);
+    TH1D *xv1 = new TH1D("xv1","xv1", 80, 0.001, 0.1);
+    TH1D *xv2 = new TH1D("xv2","xv2", 80, 0.001, 0.1);
+    
+    TH1D* rcElectronpt = new TH1D("rcElectronpt", ";p_{t} [GeV/c]", 100, -10, 10.0);
+    TH1D* rcPositronpt = new TH1D("rcPositronpt", ";p_{t} [GeV/c]", 100, -10, 10.0);
+    TH1D* rcElectronjpsipt = new TH1D("rcElectronjpsipt", ";p_{t} [GeV/c]", 100, -10,10.0);
+    TH1D* rcElectronjpsieta = new TH1D("rcElectronjpsieta",";Pseudorapidity, #eta",100,-10,10.0);
+
+    TH1D* mcrapid = new TH1D("mcrapid",";rapidity, #y",100,-0.01,1.05);
+    TH1D* mcjpsie_e_minus_pzmc = new TH1D("mcjpsie_e_minus_pzmc","mcjpsie_e_minus_pzmc",500, -50, 150.0);
+    TH1D* rcjpsie_e_minus_pz = new TH1D("rcjpsie_e_minus_pz","rcjpsie_e_minus_pz",500, -50, 150.0);
+    
+    //--------------------------------------------------------------------------
+    
+    //histograms -- only a few for now
+    
+    //MC information
+    //fProton
+    TH1D* h6_eta_MC = new TH1D("h6_eta",";Pseudorapidity, #eta",100,0.0,15.0);
+    TH1D* h6_px_MC = new TH1D("px6_MC", ";p_{x} [GeV/c]", 100, -8.5, 10);
+    TH1D* h6_py_MC = new TH1D("py6_MC", ";p_{y} [GeV/c]", 100, -2.0, 2.0);
+    TH1D* h6_pt_MC = new TH1D("pt6_MC", ";p_{t} [GeV/c]", 100, -1, 2);
+    TH1D* h6_pz_MC = new TH1D("pz6_MC", ";p_{z} [GeV/c]", 100, 0.0, 320.0);
+    TH1D* h6_e_MC = new TH1D("e6_MC", ";E [GeV]", 100, 0.0, 320.0);
+    
+    //fPositron
+    TH1D* h7_eta_MC = new TH1D("h7_eta",";Pseudorapidity, #eta",100,-10,10.0);
+    TH1D* h7_px_MC = new TH1D("px7_MC", ";p_{x} [GeV/c]", 100, -10.0, 10.0);
+    TH1D* h7_py_MC = new TH1D("py7_MC", ";p_{y} [GeV/c]", 100, -10.0, 10.0);
+    TH1D* h7_pt_MC = new TH1D("pt7_MC", ";p_{t} [GeV/c]", 100, -10, 10.0);
+    TH1D* h7_pz_MC = new TH1D("pz7_MC", ";p_{z} [GeV/c]", 100, 0.0, 320.0);
+    TH1D* h7_e_MC = new TH1D("e7_MC", ";E [GeV]", 100, 0.0, 320.0);
+    
+    //fElectron
+    TH1D* h8_eta_MC = new TH1D("h8_eta",";Pseudorapidity, #eta",100,-10,10.0);
+    TH1D* h8_px_MC = new TH1D("px8_MC", ";p_{x} [GeV/c]", 100, -10.0, 10.0);
+    TH1D* h8_py_MC = new TH1D("py8_MC", ";p_{y} [GeV/c]", 100, -10.0, 10.0);
+    TH1D* h8_pt_MC = new TH1D("pt8_MC", ";p_{t} [GeV/c]", 100, -10, 10.0);
+    TH1D* h8_pz_MC = new TH1D("pz8_MC", ";p_{z} [GeV/c]", 100, 0.0, 320.0);
+    TH1D* h8_e_MC = new TH1D("e8_MC", ";E [GeV]", 100, 0.0, 320.0);
+    
+    //jpsi electron
+    TH1D* hjpsi_eta_MC = new TH1D("hjpsi_eta",";Pseudorapidity, #eta",100,-10,10.0);
+    TH1D* hjpsi_px_MC = new TH1D("pxjpsi_MC", ";p_{x} [GeV/c]", 100, -10.0, 10.0);
+    TH1D* hjpsi_py_MC = new TH1D("pyjpsi_MC", ";p_{y} [GeV/c]", 100, -10.0, 10.0);
+    TH1D* hjpsi_pt_MC = new TH1D("ptjpsi_MC", ";p_{t} [GeV/c]", 100, -10, 10.0);
+    TH1D* hjpsi_pz_MC = new TH1D("pzjpsi_MC", ";p_{z} [GeV/c]", 100, 0.0, 320.0);
+    TH1D* hjpsi_e_MC = new TH1D("ejpsi_MC", ";E [GeV]", 100, 0.0, 320.0);
+    
+    TH1D* h1_eta_MC = new TH1D("h1_eta",";Pseudorapidity, #eta",100,0.0,15.0);
+    TH1D* h1_px_MC = new TH1D("px1_MC", ";p_{x} [GeV/c]", 100, -10.0, 10.0);
+    TH1D* h1_py_MC = new TH1D("py1_MC", ";p_{y} [GeV/c]", 100, -10.0, 10.0);
+    TH1D* h1_pt_MC = new TH1D("pt1_MC", ";p_{t} [GeV/c]", 100, 0.0, 10.0);
+    TH1D* h1_pz_MC = new TH1D("pz1_MC", ";p_{z} [GeV/c]", 100, 0.0, 320.0);
+    TH1D* h1_e_MC = new TH1D("e1_MC", ";E [GeV]", 100, 0.0, 320.0);
+    
+    TH1D* h2_eta_MC = new TH1D("h2_eta",";Pseudorapidity, #eta",100,-15,15.0);
+    TH1D* h2_px_MC = new TH1D("px2_MC", ";p_{x} [GeV/c]", 100, -10.0, 10.0);
+    TH1D* h2_py_MC = new TH1D("py2_MC", ";p_{y} [GeV/c]", 100, -10.0, 10.0);
+    TH1D* h2_pt_MC = new TH1D("pt2_MC", ";p_{t} [GeV/c]", 100, 0.0, 10.0);
+    TH1D* h2_e_MC = new TH1D("e2_MC", ";E [GeV]", 200, -20, 20.0);
+    
+    TH1D* scat_e_RC = new TH1D("scat_e_RC", ";E [GeV]", 200, -20, 20.0);
+    TH1D* scat_e_EcalEnd = new TH1D("scat_e_EcalEnd", ";E [GeV]", 200, -20, 20.0);
+    TH1D* Ecal_vs_pz = new TH1D("Ecal_vs_pz", ";E/P", 200, -5, 5.0);
+    
+    //Roman pots
+    TH1D* h_px_RomanPots = new TH1D("px_RomanPots", ";p_{x} [GeV/c]", 100, -10.0, 10.0);
+    TH1D* h_py_RomanPots = new TH1D("py_RomanPots", ";p_{y} [GeV/c]", 100, -10.0, 10.0);
+    TH1D* h_pt_RomanPots = new TH1D("pt_RomanPots", ";p_{t} [GeV/c]", 100, -1, 2.0);
+    TH1D* h_pz_RomanPots = new TH1D("pz_RomanPots", ";p_{z} [GeV/c]", 100, 0.0, 320.0);
+    TH1D* h_e_RomanPots = new TH1D("e_RomanPots", ";E [GeV]", 100, 0.0, 320.0);
+    TH2D* h_rp_occupancy_map = new TH2D("Roman_pots_occupancy_map", "hit y [mm];hit x [mm]", 100, -150, 150, 100, -70, 70);
+    
+    //OMD
+    TH1D* h_px_OMD = new TH1D("px_OMD", ";p_{x} [GeV/c]", 100, -10.0, 10.0);
+    TH1D* h_py_OMD = new TH1D("py_OMD", ";p_{y} [GeV/c]", 100, -10.0, 10.0);
+    TH1D* h_pt_OMD = new TH1D("pt_OMD", ";p_{t} [GeV/c]", 100, -1, 2.0);
+    TH1D* h_pz_OMD = new TH1D("pz_OMD", ";p_{z} [GeV/c]", 100, 0.0, 320.0);
+    TH1D* h_e_OMD = new TH1D("e_OMD", ";E [GeV]", 100, 0.0, 320.0);
+    TH2D* h_omd_occupancy_map = new TH2D("OMD_occupancy_map", "hit y [mm];hit x [mm]", 100, -150, 150, 100, -70, 70);
+    
+    
+    //B0 tracker hits
+    TH2D* h_B0_occupancy_map_layer_0 = new TH2D("B0_occupancy_map_0", "B0_occupancy_map_0", 100, -400, 0, 100, -170, 170);
+    TH2D* h_B0_occupancy_map_layer_1 = new TH2D("B0_occupancy_map_1", "B0_occupancy_map_1", 100, -400, 0, 100, -170, 170);
+    TH2D* h_B0_occupancy_map_layer_2 = new TH2D("B0_occupancy_map_2", "B0_occupancy_map_2", 100, -400, 0, 100, -170, 170);
+    TH2D* h_B0_occupancy_map_layer_3 = new TH2D("B0_occupancy_map_3", "B0_occupancy_map_3", 100, -400, 0, 100, -170, 170);
+    TH1D* h_B0_hit_energy_deposit = new TH1D("B0_tracker_hit_energy_deposit", ";Deposited Energy [keV]", 100, 0.0, 500.0);
+    
+    //B0 EMCAL clusters
+    TH2D* h_B0_emcal_occupancy_map = new TH2D("B0_emcal_occupancy_map", "B0_emcal_occupancy_map", 100, -400, 0, 100, -170, 170);
+    TH1D* h_B0_emcal_cluster_energy = new TH1D("B0_emcal_cluster_energy", ";Cluster Energy [GeV]", 100, 0.0, 100.0);
+    
+    //Reconstructed tracks (for usage with B0 too!!)
+    TH1D* h_px_reco_track = new TH1D("px_reco_track", ";p_{x} [GeV/c]", 100, -10.0, 10.0);
+    TH1D* h_py_reco_track = new TH1D("py_reco_track", ";p_{y} [GeV/c]", 100, -10.0, 10.0);
+    TH1D* h_pt_reco_track = new TH1D("pt_reco_track", ";p_{t} [GeV/c]", 100, -1, 4);
+    TH1D* h_pz_reco_track = new TH1D("pz_reco_track", ";p_{z} [GeV/c]", 100, 0.0, 320);
+    TH1D* h_e_reco_track = new TH1D("e_reco_track", ";E [GeV]", 100, 0.0, 320);
+    
+    incbeame.SetXYZM(0,0,-17.999999992746666,0.00051099904266560590);
+    incbeam.SetXYZM(0,0, 274.99839935073504,0.93827210000933003);
+    
+    
+    int fileCounter = 0;
+    int iEvent = 0, iflagproton = 0, ic = 2;
+    
+    double t1, t3;
+    double thetaMC, thetaChPct, thetaChPct2;
+    double q2, q2_1, q2_2;
+    double scatElecEnergMC, scatElecEnergChPct, scatElecEnergChPct2;
+    double ixb, ixv, ixb1, ixb2, ixv1, ixv2, rap;
+    
+    while(getline(fileListStream, fileName)){
+        
+        TString tmp = fileName;
+        
+        cout << "Input file " << fileCounter << ": " << fileName << endl;
+        
+        inputRootFile = new TFile(tmp);
+        if(!inputRootFile){ cout << "MISSING_ROOT_FILE"<< fileName << endl; continue;}
+        
+        fileCounter++;
+        
+        TTree * evtTree = (TTree*)inputRootFile->Get("events");
+        
+        int numEvents = evtTree->GetEntries();
+        
+        TTreeReader tree_reader(evtTree);       // !the tree reader
+        
+        //MC particles
+        
+        TTreeReaderArray<float> mc_px_array = {tree_reader, "MCParticles.momentum.x"};
+        TTreeReaderArray<float> mc_py_array = {tree_reader, "MCParticles.momentum.y"};
+        TTreeReaderArray<float> mc_pz_array = {tree_reader, "MCParticles.momentum.z"};
+        TTreeReaderArray<double> mc_mass_array = {tree_reader, "MCParticles.mass"};
+        TTreeReaderArray<int> mc_pdg_array = {tree_reader, "MCParticles.PDG"};
+        
+        //Roman pots -- momentum vector
+        TTreeReaderArray<float> reco_RP_px = {tree_reader, "ForwardRomanPotRecParticles.momentum.x"};
+        TTreeReaderArray<float> reco_RP_py = {tree_reader, "ForwardRomanPotRecParticles.momentum.y"};
+        TTreeReaderArray<float> reco_RP_pz = {tree_reader, "ForwardRomanPotRecParticles.momentum.z"};
+        TTreeReaderArray<int> reco_RP_pdg = {tree_reader, "ForwardRomanPotRecParticles.PDG"};
+        TTreeReaderArray<float> reco_RP_m = {tree_reader, "ForwardRomanPotRecParticles.mass"};
+        TTreeReaderArray<float> reco_RP_e = {tree_reader, "ForwardRomanPotRecParticles.energy"};
+        
+        //Off-Momentum -- momentum vector
+        TTreeReaderArray<float> reco_OMD_px = {tree_reader, "ForwardOffMRecParticles.momentum.x"};
+        TTreeReaderArray<float> reco_OMD_py = {tree_reader, "ForwardOffMRecParticles.momentum.y"};
+        TTreeReaderArray<float> reco_OMD_pz = {tree_reader, "ForwardOffMRecParticles.momentum.z"};
+        TTreeReaderArray<int> reco_OMD_pdg = {tree_reader, "ForwardOffMRecParticles.PDG"};
+        TTreeReaderArray<float> reco_OMD_m = {tree_reader, "ForwardOffMRecParticles.mass"};
+        TTreeReaderArray<float> reco_OMD_e = {tree_reader, "ForwardOffMRecParticles.energy"};
+        
+        //hit locations (for debugging)
+        TTreeReaderArray<float> global_hit_RP_x = {tree_reader, "ForwardRomanPotRecParticles.referencePoint.x"};
+        TTreeReaderArray<float> global_hit_RP_y = {tree_reader, "ForwardRomanPotRecParticles.referencePoint.y"};
+        TTreeReaderArray<float> global_hit_RP_z = {tree_reader, "ForwardRomanPotRecParticles.referencePoint.z"};
+        
+        //hit locations (for debugging)
+        TTreeReaderArray<float> global_hit_OMD_x = {tree_reader, "ForwardOffMRecParticles.referencePoint.x"};
+        TTreeReaderArray<float> global_hit_OMD_y = {tree_reader, "ForwardOffMRecParticles.referencePoint.y"};
+        TTreeReaderArray<float> global_hit_OMD_z = {tree_reader, "ForwardOffMRecParticles.referencePoint.z"};
+        
+        //b0 tracker hits
+        TTreeReaderArray<float> b0_hits_x = {tree_reader, "B0TrackerRecHits.position.x"};
+        TTreeReaderArray<float> b0_hits_y = {tree_reader, "B0TrackerRecHits.position.y"};
+        TTreeReaderArray<float> b0_hits_z = {tree_reader, "B0TrackerRecHits.position.z"};
+        TTreeReaderArray<float> b0_hits_eDep = {tree_reader, "B0TrackerRecHits.edep"}; //deposited energy per hit
+        
+        //b0 EMCAL
+        TTreeReaderArray<float> b0_cluster_x = {tree_reader, "B0ECalClusters.position.x"};
+        TTreeReaderArray<float> b0_cluster_y = {tree_reader, "B0ECalClusters.position.y"};
+        TTreeReaderArray<float> b0_cluster_z = {tree_reader, "B0ECalClusters.position.z"};
+        TTreeReaderArray<float>  b0_cluster_energy = {tree_reader, "B0ECalClusters.energy"}; //deposited energy in cluster
+        
+        //reco tracks (where b0 tracks live!!!)
+        TTreeReaderArray<float> reco_track_x = {tree_reader, "ReconstructedChargedParticles.momentum.x"};
+        TTreeReaderArray<float> reco_track_y = {tree_reader, "ReconstructedChargedParticles.momentum.y"};
+        TTreeReaderArray<float> reco_track_z = {tree_reader, "ReconstructedChargedParticles.momentum.z"};
+        TTreeReaderArray<float> reco_track_e = {tree_reader, "ReconstructedChargedParticles.energy"};
+        //TTreeReaderArray<float> reco_track_type = {tree_reader, "ReconstructedChargedParticles.type"};
+        
+        TTreeReaderArray<int> reco_track_pdg = {tree_reader, "ReconstructedChargedParticles.PDG"};
+        TTreeReaderArray<float> reco_track_m = {tree_reader, "ReconstructedChargedParticles.mass"};
+        TTreeReaderArray<float> reco_track_c = {tree_reader, "ReconstructedChargedParticles.charge"};
+        
+        TTreeReaderArray<float> recop_p_x = {tree_reader, "ReconstructedParticles.momentum.x"};
+        TTreeReaderArray<float> recop_p_y = {tree_reader, "ReconstructedParticles.momentum.y"};
+        TTreeReaderArray<float> recop_p_z = {tree_reader, "ReconstructedParticles.momentum.z"};
+        TTreeReaderArray<float> recop_p_m = {tree_reader, "ReconstructedParticles.mass"};
+        TTreeReaderArray<int> recop_p_pdg = {tree_reader, "ReconstructedParticles.PDG"};
+        
+        //Reconstructed EcalEndcapNClusters
+        TTreeReaderArray<float> em_energy_array = {tree_reader, "EcalEndcapNClusters.energy"};
+        TTreeReaderArray<float> em_x_array = {tree_reader, "EcalEndcapNClusters.position.x"};
+        TTreeReaderArray<float> em_y_array = {tree_reader, "EcalEndcapNClusters.position.y"};
+        TTreeReaderArray<float> emhits_x_array = {tree_reader, "EcalEndcapNRecHits.position.x"};
+        TTreeReaderArray<float> emhits_y_array = {tree_reader, "EcalEndcapNRecHits.position.y"};
+        TTreeReaderArray<float> emhits_energy_array = {tree_reader, "EcalEndcapNRecHits.energy"};
+        TTreeReaderArray<float> theta_array = {tree_reader, "EcalEndcapNClusters.intrinsicTheta"};
+        TTreeReaderArray<float> phi_array = {tree_reader, "EcalEndcapNClusters.intrinsicPhi"};
+        
+        cout << "file has " << evtTree->GetEntries() <<  " events..." << endl;
+        
+        tree_reader.SetEntriesRange(0, evtTree->GetEntries());// allow computer to get the number of events
+        
+        while (tree_reader.Next()) {
+            TLorentzVector mctrk4q2;
+            
+            double maxPt=-99.;
+            iflagproton = 0;
+            
+            //start of prequesite conditions confining q_squared between 1 and 10
+            mctrk4q2.SetXYZM(mc_px_array[ic], mc_py_array[ic],mc_pz_array[ic],mc_mass_array[ic]);
+            
+            scatElecEnergMC = mctrk4q2.E();
+            thetaMC = mctrk4q2.Theta();
+            thetaMC = thetaMC - TMath::Pi();
+            
+            q2 = 4 * incbeame.E() * scatElecEnergMC * TMath::Sin(thetaMC/2.0) * TMath::Sin(thetaMC/2.0);
+            
+            mtq->Fill(q2);
+            
+            h2_eta_MC->Fill(mctrk4q2.Eta());
+            h2_e_MC->Fill(mctrk4q2.E());
+            
+            //for the final proton
+            vec1.SetXYZM(mc_px_array[6], mc_py_array[6], mc_pz_array[6],mc_mass_array[6]);
+            vec1.RotateY(0.025);
+            fProton->Fill(vec1.Eta());
+            h6_eta_MC->Fill(vec1.Eta());
+            h6_px_MC->Fill(vec1.Px());
+            h6_py_MC->Fill(vec1.Py());
+            h6_pt_MC->Fill(vec1.Pt());
+            h6_pz_MC->Fill(vec1.Pz());
+            h6_e_MC->Fill(vec1.E());
+            
+            // for the jpsi positron
+            vec2.SetXYZM(mc_px_array[7], mc_py_array[7], mc_pz_array[7],mc_mass_array[7]);
+            fPositron->Fill(vec2.Eta());
+            h7_eta_MC->Fill(vec2.Eta());
+            h7_px_MC->Fill(vec2.Px());
+            h7_py_MC->Fill(vec2.Py());
+            h7_pt_MC->Fill(vec2.Pt());
+            h7_pz_MC->Fill(vec2.Pz());
+            h7_e_MC->Fill(vec2.E());
+            
+            //for the jpsi electron
+            vecjpsi.SetXYZM(mc_px_array[8], mc_py_array[8], mc_pz_array[8],mc_mass_array[8]);
+            hjpsi_eta_MC->Fill(vecjpsi.Eta());
+            hjpsi_px_MC->Fill(vecjpsi.Px());
+            hjpsi_py_MC->Fill(vecjpsi.Py());
+            hjpsi_pt_MC->Fill(vecjpsi.Pt());
+            hjpsi_pz_MC->Fill(vecjpsi.Pz());
+            hjpsi_e_MC->Fill(vecjpsi.E());
+            
+            //for the scattered/ final electron
+            vec3.SetXYZM(mc_px_array[2], mc_py_array[2], mc_pz_array[2],mc_mass_array[2]);
+            fElectron->Fill(vec3.Eta());
+            h8_eta_MC->Fill(vec3.Eta());
+            h8_px_MC->Fill(vec3.Px());
+            h8_py_MC->Fill(vec3.Py());
+            h8_pt_MC->Fill(vec3.Pt());
+            h8_pz_MC->Fill(vec3.Pz());
+            h8_e_MC->Fill(vec3.E());
+            
+            //for mediating photon
+            iphoton.SetXYZM(mc_px_array[1], mc_py_array[1], mc_pz_array[1],mc_mass_array[1]);
+            h1_px_MC->Fill(iphoton.Px());
+            h1_py_MC->Fill(iphoton.Py());
+            h1_pt_MC->Fill(iphoton.Pt());
+            h1_pz_MC->Fill(iphoton.Pz());
+            h1_e_MC->Fill(iphoton.E());
+            
+            //Kinematics calculations for the MC
+            TLorentzVector diff3 = incbeam - vec1;
+            t3 = -1*diff3.Dot(diff3);//for MC
+            mtgg->Fill(t3);
+            ixb = q2/(2.0 * incbeam.Dot(iphoton));//mc
+            xb->Fill(ixb);
+            ixv = (q2 + ijpsi.Dot(ijpsi))/(2.0 * incbeam.Dot(iphoton));
+            xv->Fill(ixv);
+            
+            JPsi1 = vec2 + vecjpsi;
+            JPsiMass1->Fill(JPsi1.M());
+            
+            //if(abs(vec3.E()) > abs(vecjpsi.E()) ){
+            if(vec3.E() > vecjpsi.E()){
+                vec3mc = vec3;
+                vecjpsimc = vecjpsi;
+                
+                if (((vecjpsimc + vec2 + vec3mc).E() - (vecjpsimc + vec2 + vec3mc).Pz()) > 30 && ((vecjpsimc + vec2 + vec3mc).E() - (vecjpsimc + vec2 + vec3mc).Pz()) < 38){
+                    
+                    mcjpsie_e_minus_pzmc->Fill((vecjpsimc + vec2 + vec3mc).E() - (vecjpsimc + vec2 + vec3mc).Pz());
+                    
+                }
+            }
+            
+            rap = (incbeam.Dot(iphoton)) / (incbeam.Dot(incbeame));
+            mcrapid->Fill(rap);
+            
+            //roman pots reco tracks
+            for(int iRPPart = 0; iRPPart < reco_RP_px.GetSize(); iRPPart++){
+                //reco jpsi
+                
+                if (reco_RP_pdg[iRPPart] == 2212){
+                    TLorentzVector prec_romanpots(reco_RP_px[iRPPart], reco_RP_py[iRPPart], reco_RP_pz[iRPPart], reco_RP_e[iRPPart]);
+                    
+                    //place a pT cut on reconstructeed proton
+                    if (prec_romanpots.Pt() >= 0.2 && reco_RP_pdg[iRPPart] == 2212){
+                        
+                        vec5.SetXYZM(reco_RP_px[iRPPart], reco_RP_py[iRPPart], reco_RP_pz[iRPPart], reco_RP_m[iRPPart]);
+                        
+                        RPfProton->Fill(vec5.Eta());
+                        
+                        h_px_RomanPots->Fill(prec_romanpots.Px());
+                        h_py_RomanPots->Fill(prec_romanpots.Py());
+                        h_pt_RomanPots->Fill(prec_romanpots.Perp());
+                        h_pz_RomanPots->Fill(prec_romanpots.Pz());
+                        h_e_RomanPots->Fill(prec_romanpots.E());
+                        
+                        h_rp_occupancy_map->Fill(global_hit_RP_x[iRPPart], global_hit_RP_y[iRPPart]);
+                        iflagproton = 1;
+                    }
+                    
+                    //}
+                }
+                
+            }
+            
+            //OMD reco tracks
+            for(int iOMDPart = 0; iOMDPart < reco_OMD_px.GetSize(); iOMDPart++){
+                
+                TLorentzVector prec_omd(reco_OMD_px[iOMDPart], reco_OMD_py[iOMDPart], reco_OMD_pz[iOMDPart], reco_OMD_e[iOMDPart]);
+                
+                vec6.SetXYZM(reco_OMD_px[iOMDPart], reco_OMD_py[iOMDPart], reco_OMD_pz[iOMDPart], reco_OMD_m[iOMDPart]);
+                
+                //if (prec_omd.Eta()>4){
+                if (reco_OMD_pdg[iOMDPart] == 2212){
+                    OMDfProton->Fill(vec6.Eta());
+                    h_px_OMD->Fill(prec_omd.Px());
+                    h_py_OMD->Fill(prec_omd.Py());
+                    h_pt_OMD->Fill(prec_omd.Perp());
+                    h_pz_OMD->Fill(prec_omd.Pz());
+                    h_e_OMD->Fill(prec_omd.E());
+                    
+                    h_omd_occupancy_map->Fill(global_hit_OMD_x[iOMDPart], global_hit_OMD_y[iOMDPart]);
+                }
+                break;
+            }
+            
+            
+            
+            double hit_x = -9999.;
+            double hit_y = -9999.;
+            double hit_z = -9999.;
+            double hit_deposited_energy = -9999.;
+            
+            for(int b0cluster = 0; b0cluster < b0_cluster_x.GetSize(); b0cluster++){
+                
+                hit_x = b0_cluster_x[b0cluster];
+                hit_y = b0_cluster_y[b0cluster];
+                hit_z = b0_cluster_z[b0cluster];
+                hit_deposited_energy = b0_cluster_energy[b0cluster]*1.246; //poor man's calibration constant, for now
+                
+                h_B0_emcal_occupancy_map->Fill(hit_x, hit_y);
+                h_B0_emcal_cluster_energy->Fill(hit_deposited_energy);
+                
+            }
+            
+            
+            //b0 tracker hits -- for debugging or external tracking
+            for(int b0hit = 0; b0hit < b0_hits_x.GetSize(); b0hit++){
+                
+                hit_x = b0_hits_x[b0hit];
+                hit_y = b0_hits_y[b0hit];
+                hit_z = b0_hits_z[b0hit];
+                hit_deposited_energy = b0_hits_eDep[b0hit]*1e6; //convert GeV --> keV
+                
+                h_B0_hit_energy_deposit->Fill(hit_deposited_energy);
+                
+                if(hit_deposited_energy < 10.0){ continue; } //threshold value -- 10 keV, arbitrary, for now
+                
+                //ACLGAD layout
+                if(hit_z > 5700 && hit_z < 5990){ h_B0_occupancy_map_layer_0->Fill(hit_x, hit_y); }
+                if(hit_z > 6100 && hit_z < 6200){ h_B0_occupancy_map_layer_1->Fill(hit_x, hit_y); }
+                if(hit_z > 6400 && hit_z < 6500){ h_B0_occupancy_map_layer_2->Fill(hit_x, hit_y); }
+                if(hit_z > 6700 && hit_z < 6750){ h_B0_occupancy_map_layer_3->Fill(hit_x, hit_y); }
+                
+            }
+            
+            
+            //reconstructed tracks with ACTS -- used for B0
+            for(int iRecoTrk = 0; iRecoTrk < reco_track_x.GetSize(); iRecoTrk++){
+                
+                TLorentzVector prec_reco_tracks(reco_track_x[iRecoTrk], reco_track_y[iRecoTrk], reco_track_z[iRecoTrk], reco_track_e[iRecoTrk]);
+                
+                prec_reco_tracks.RotateY(0.025); //remove crossing angle for B0!!!
+                
+                vec4.SetXYZM(reco_track_x[iRecoTrk], reco_track_y[iRecoTrk], reco_track_z[iRecoTrk], reco_track_m[iRecoTrk]);
+                
+                
+                if (reco_track_pdg[iRecoTrk] == 2212){
+                    //if (prec_reco_tracks.Eta()>4){
+                    B0fProton->Fill(vec4.Eta());
+                    h_px_reco_track->Fill(prec_reco_tracks.Px());
+                    h_py_reco_track->Fill(prec_reco_tracks.Py());
+                    h_pt_reco_track->Fill(prec_reco_tracks.Perp());
+                    h_pz_reco_track->Fill(prec_reco_tracks.Pz());
+                    h_e_reco_track->Fill(prec_reco_tracks.E());
+                }
+                break;
+            }
+            
+            iEvent++;
+            
+            if(reco_track_x.GetSize() == 3){
+                
+                if(reco_track_c[0] == -1 && reco_track_c[1] == -1 && reco_track_c[2] == 1){
+                    int icheck = 0;
+                    int jcheck = 1;
+                    int kcheck = 2;
+                    rcpv1rc.SetXYZM(reco_track_x[icheck], reco_track_y[icheck], reco_track_z[icheck],reco_track_m[icheck]);
+                    eq1rc.SetXYZM(reco_track_x[jcheck], reco_track_y[jcheck], reco_track_z[jcheck],reco_track_m[jcheck]);
+                    rcpv2.SetXYZM(reco_track_x[kcheck], reco_track_y[kcheck], reco_track_z[kcheck],reco_track_m[kcheck]);
+                }
+                else if(reco_track_c[0] == -1 && reco_track_c[1] == 1 && reco_track_c[2] == -1){
+                    int icheck = 0;
+                    int jcheck = 2;
+                    int kcheck = 1;
+                    rcpv1rc.SetXYZM(reco_track_x[icheck], reco_track_y[icheck], reco_track_z[icheck],reco_track_m[icheck]);
+                    eq1rc.SetXYZM(reco_track_x[jcheck], reco_track_y[jcheck], reco_track_z[jcheck],reco_track_m[jcheck]);
+                    rcpv2.SetXYZM(reco_track_x[kcheck], reco_track_y[kcheck], reco_track_z[kcheck],reco_track_m[kcheck]);
+                }
+                else if(reco_track_c[0] == 1 && reco_track_c[1] == -1 && reco_track_c[2] == -1){
+                    int icheck = 1;
+                    int jcheck = 2;
+                    int kcheck = 0;
+                    rcpv1rc.SetXYZM(reco_track_x[icheck], reco_track_y[icheck], reco_track_z[icheck],reco_track_m[icheck]);
+                    eq1rc.SetXYZM(reco_track_x[jcheck], reco_track_y[jcheck], reco_track_z[jcheck],reco_track_m[jcheck]);
+                    rcpv2.SetXYZM(reco_track_x[kcheck], reco_track_y[kcheck], reco_track_z[kcheck],reco_track_m[kcheck]);
+                }
+                else{
+                    continue;
+                }
+                
+                //if (abs(rcpv1rc.Pz()) > abs(eq1rc.Pz())){
+                if (rcpv1rc.E() > eq1rc.E() && (abs(rcpv1rc.Pz()) > abs(eq1rc.Pz()))){
+                    eq1 = rcpv1rc;
+                    rcpv1 = eq1rc;
+                }
+                else if (eq1rc.E() > rcpv1rc.E() && (abs(eq1rc.Pz()) > abs(rcpv1rc.Pz()))){
+                    eq1 = eq1rc;
+                    rcpv1 = rcpv1rc;
+                }
+                else {
+                    continue;
+                }
+            }
+            else{
+                continue;
+            }
+            //}
+            
+            double maxEnergy=-99.;
+            double ecal_theta=-111111.;
+            double ecal_phi=-111111.;
+            double tot_p;
+            double xpos=-999.;
+            double ypos=-999.;
+            for(int iclus=0;iclus<em_energy_array.GetSize();iclus++){
+                if(em_energy_array[iclus]>maxEnergy){
+                    maxEnergy=em_energy_array[iclus] * 1.02;
+                    xpos=em_x_array[iclus];
+                    ypos=em_y_array[iclus];
+                    ecal_theta=theta_array[iclus];
+                    ecal_phi=phi_array[iclus];
+                }
+            }
+            
+            scat_e_RC->Fill(eq1.E());
+            scat_e_EcalEnd->Fill(maxEnergy);
+            
+            tot_p = sqrt(eq1.Pt()*eq1.Pt() + eq1.Pz()*eq1.Pz());
+            Ecal_vs_pz->Fill(maxEnergy/tot_p);
+            
+            scatElecEnergChPct = eq1.E();
+            scatElecEnergChPct2 = maxEnergy;
+            thetaChPct = eq1.Theta();
+            thetaChPct2 = ecal_theta;
+            thetaChPct = thetaChPct - TMath::Pi();
+            thetaChPct2 = thetaChPct2 - TMath::Pi();
+            q2_1 = 4 * incbeame.E() * scatElecEnergChPct * TMath::Sin(thetaChPct/2.0) * TMath::Sin(thetaChPct/2.0);
+            q2_2 = 4 * incbeame.E() * scatElecEnergChPct2 * TMath::Sin(thetaChPct2/2.0) * TMath::Sin(thetaChPct2/2.0);
+            if (q2_1 > 0 && q2_1 < 20){
+                mtqq->Fill(q2_1);
+            }
+            if (q2_2 > 0 && q2_2 < 20){
+                mtqq_2->Fill(q2_2);
+            }
+            
+            JPsi22 = rcpv1 + rcpv2;
+            JPsi222 = eq1 + rcpv2;
+            
+            if ((JPsi22.M() > 2 && JPsi22.M() < 3.6) && (JPsi222.M() > 2 && JPsi222.M() < 3.6)){
+                rcJPsiMass11->Fill(JPsi22.M());
+            }
+            if ((JPsi222.M() > 2 && JPsi222.M() < 3.6) && (JPsi22.M() > 2 && JPsi22.M() < 3.6)){
+                rcJPsiMass111->Fill(JPsi222.M());
+            }
+            
+            JPsi2 = rcpv1 + rcpv2;
+            rcJPsiMass1->Fill(JPsi2.M());
+            diffjpsimass->Fill((JPsi1.M() - JPsi2.M())/JPsi1.M());
+            
+            TLorentzVector diff1 = incbeam - vec5;
+            t1 = -1*diff1.Dot(diff1);//for RP
+            ixb1 = q2_1/(2.0 * incbeam.Dot(iphoton));//recon
+            ixb2 = q2_2/(2.0 * incbeam.Dot(iphoton));//recon
+            ixv1 = (q2_1 + ijpsi.M()*ijpsi.M())/(2.0 * incbeam.Dot(iphoton));
+            ixv2 = (q2_2 + ijpsi.M()*ijpsi.M())/(2.0 * incbeam.Dot(iphoton));
+            
+            if (iflagproton == 1){
+                mtg->Fill(t1);
+                difft->Fill((t3 - t1)/t3);
+            }
+            xb1->Fill(ixb1);
+            xb2->Fill(ixb2);
+            xv1->Fill(ixv1);
+            xv2->Fill(ixv2);
+            
+            diffq2->Fill((q2 - q2_1)/q2);
+            diffq2_2->Fill((q2 - q2_2)/q2);
+            diffx_v->Fill((ixv - ixv1)/ixv);
+            diffx_v2->Fill((ixv - ixv2)/ixv);
+            
+            rcElectron->Fill(eq1.Eta());
+            rcPositron->Fill(rcpv2.Eta());
+            rcPositronpt->Fill(rcpv2.Pt());
+            rcElectronpt->Fill(eq1.Pt());
+            rcElectronjpsieta->Fill(rcpv1.Eta());
+            rcElectronjpsipt->Fill(rcpv1.Pt());
+            
+            if (((rcpv1 + rcpv2 + eq1).E() - (rcpv1 + rcpv2 + eq1).Pz()) > 30 && ((rcpv1 + rcpv2 + eq1).E() - (rcpv1 + rcpv2 + eq1).Pz()) < 38){
+                rcjpsie_e_minus_pz->Fill((rcpv1 + rcpv2 + eq1).E() - (rcpv1 + rcpv2 + eq1).Pz());
+            }
+        }// event loop
+        
+        inputRootFile->Close();
+        
+    }// input file loop
+    
+    
+    cout << "Check integrals: " << endl;
+    cout << "pt6_mc integral = " << h6_pt_MC->Integral() << endl;
+    cout << "pt_RP_reco integral = " << h_pt_RomanPots->Integral() << endl;
+    
+    TFile * outputFile = new TFile(outputFileName, "RECREATE");
+    
+    h6_px_MC->Write();
+    h6_py_MC->Write();
+    h6_pt_MC->Write();
+    h6_pz_MC->Write();
+    h6_e_MC->Write();
+    
+    h8_pt_MC->Write();
+    rcElectronpt->Write();
+    rcElectron->Write();
+    
+    fProton->Write();
+    fPositron->Write();
+    fElectron->Write();
+    
+    JPsiMass1->Write();
+    rcJPsiMass1->Write();
+    
+    h_px_RomanPots->Write();
+    h_py_RomanPots->Write();
+    h_pt_RomanPots->Write();
+    h_pz_RomanPots->Write();
+    h_e_RomanPots->Write();
+    RPfProton->Write();
+    h_rp_occupancy_map->Write();
+    
+    h_px_OMD->Write();
+    h_py_OMD->Write();
+    h_pt_OMD->Write();
+    h_pz_OMD->Write();
+    h_e_OMD->Write();
+    OMDfProton->Write();
+    h_omd_occupancy_map->Write();
+    
+    h_B0_occupancy_map_layer_0->Write();
+    h_B0_occupancy_map_layer_1->Write();
+    h_B0_occupancy_map_layer_2->Write();
+    h_B0_occupancy_map_layer_3->Write();
+    h_B0_hit_energy_deposit->Write();
+    
+    h_B0_emcal_occupancy_map->Write();
+    h_B0_emcal_cluster_energy->Write();
+    
+    h_px_reco_track->Write();
+    h_py_reco_track->Write();
+    h_pt_reco_track->Write();
+    h_pz_reco_track->Write();
+    h_e_reco_track->Write();
+    B0fProton->Write();
+    
+    outputFile->Close();
+    
+    TCanvas *c1 = new TCanvas("c1","c1",800,800);
+    fProton->GetXaxis()->SetTitle("#eta");
+    fProton->GetXaxis()->SetRangeUser(-10,20);
+    fProton->SetStats(0);
+    fProton->GetYaxis()->SetTitleSize(0.03);
+    //fProton->GetYaxis()->SetTitle("Final Proton");
+    fProton->SetLineColor(1);//red
+    fProton->SetLineWidth(6);
+    fProton->Draw();
+    
+    RPfProton->SetLineColor(2);//black plot
+    RPfProton->SetLineWidth(6);
+    RPfProton->Draw("SAME");
+    
+    OMDfProton->SetLineColor(3);//green plot
+    OMDfProton->SetLineWidth(6);
+    OMDfProton->Draw("SAME");
+    
+    B0fProton->SetLineColor(4);//blue plot
+    B0fProton->SetLineWidth(6);
+    B0fProton->Draw("SAME");
+    
+    TLegend *leg = new TLegend(0.8, 0.7, 0.9, 0.9);
+    leg->AddEntry(fProton,"MC", "l");
+    leg->AddEntry(RPfProton, "RP", "l");
+    leg->AddEntry(OMDfProton, "OMD", "l");
+    leg->AddEntry(B0fProton, "B0", "l");
+    leg->Draw();
+    
+    TCanvas *c2 = new TCanvas("c2","c2",800,800);
+    fProton->GetXaxis()->SetTitle("#eta");
+    fProton->GetXaxis()->SetRangeUser(-10,20);
+    fProton->SetStats(0);
+    fProton->GetYaxis()->SetTitleSize(0.03);
+    //fProton->GetYaxis()->SetTitle("Final Proton");
+    fProton->SetLineColor(1);//red plot
+    fProton->SetLineWidth(6);
+    fProton->Draw();
+    
+    RPfProton->SetLineColor(2);//black plot
+    RPfProton->SetLineWidth(6);
+    RPfProton->Draw("SAME");
+    
+    TLegend *leg1 = new TLegend(0.8, 0.8, 0.9, 0.9);
+    leg1->AddEntry(fProton,"MC", "l");
+    leg1->AddEntry(RPfProton, "RP", "l");
+    leg1->Draw();
+    
+    TCanvas *Scattered_Electron = new TCanvas("Scattered_Electron","Scattered_Electron",800,800);
+    fElectron->GetXaxis()->SetTitle("#eta");
+    fElectron->GetXaxis()->SetRangeUser(-4.5,1);
+    fElectron->SetStats(0);
+    fElectron->GetYaxis()->SetTitleSize(0.03);
+    fElectron->SetLineColor(1);//red plot
+    fElectron->SetLineWidth(6);
+    fElectron->Draw();
+    
+    rcElectron->SetLineColor(2);//red plot
+    rcElectron->SetLineWidth(6);
+    rcElectron->Draw("SAME");
+    
+    TLegend *leg7 = new TLegend(0.8, 0.8, 0.9, 0.9);
+    leg7->AddEntry(fElectron,"MC e", "l");
+    leg7->AddEntry(rcElectron,"Recon e", "l");
+    leg7->Draw();
+    
+    TCanvas *c4 = new TCanvas("c4","c4",1000,800);
+    c4->Divide(2,1);
+    c4->cd(1);
+    rcJPsiMass11->GetXaxis()->SetTitle("Mass [GeV]");
+    rcJPsiMass11->GetXaxis()->SetRangeUser(2,3.6);
+    rcJPsiMass11->SetStats(0);
+    rcJPsiMass11->GetYaxis()->SetTitleSize(0.03);
+    rcJPsiMass11->SetLineColor(1);//black plot
+    rcJPsiMass11->SetLineWidth(6);
+    rcJPsiMass11->Draw();
+    
+    rcJPsiMass111->SetLineColor(2);//red plot
+    rcJPsiMass111->SetLineWidth(6);
+    rcJPsiMass111->Draw("SAME");
+    
+    TLegend *leg22 = new TLegend(0.8, 0.8, 0.9, 0.9);
+    leg22->AddEntry(rcJPsiMass11,"ee^{+}", "l");
+    leg22->AddEntry(rcJPsiMass111,"e'e^{+}", "l");
+    leg22->Draw();
+    
+    c4->cd(2);
+    rcJPsiMass1->GetXaxis()->SetTitle("Mass e^{-}e^{+} [GeV]");
+    rcJPsiMass1->GetXaxis()->SetRangeUser(2,4);
+    rcJPsiMass1->SetStats(0);
+    rcJPsiMass1->GetYaxis()->SetTitleSize(0.03);
+    rcJPsiMass1->SetLineColor(2);//red plot
+    rcJPsiMass1->SetLineWidth(6);
+    rcJPsiMass1->Draw();
+    
+    TCanvas *jps_mass = new TCanvas("jps_mass","jps_mass",800,800);
+    JPsiMass1->GetXaxis()->SetTitle("Mass e^{-}e^{+} [GeV]");
+    JPsiMass1->GetXaxis()->SetRangeUser(2,3.6);
+    JPsiMass1->SetStats(0);
+    JPsiMass1->SetLineColor(1);
+    JPsiMass1->SetLineWidth(6);
+    JPsiMass1->Draw();
+    
+    rcJPsiMass1->SetLineColor(2);//red plot
+    rcJPsiMass1->SetLineWidth(6);
+    rcJPsiMass1->Draw("SAME");
+    
+    TLegend *jpsi_MCReco = new TLegend(0.6, 0.8, 0.9, 0.9);
+    jpsi_MCReco->AddEntry(JPsiMass1, "MC", "l");
+    jpsi_MCReco->AddEntry(rcJPsiMass1,"Full Reconstruction", "l");
+    jpsi_MCReco->Draw();
+    
+    TCanvas *t_distribution = new TCanvas("t_distribution","t_distribution",800,800);
+    t_distribution->SetLogy();
+    mtg->GetXaxis()->SetTitle("-t");
+    mtg->GetXaxis()->SetRangeUser(0.00001,2);
+    mtg->SetStats(0);
+    mtg->GetYaxis()->SetTitleSize(0.03);
+    mtg->GetYaxis()->SetRangeUser(1,4000);
+    mtg->SetLineColor(2);//red plot
+    mtg->SetLineWidth(6);
+    mtg->SetMarkerStyle(8);
+    mtg->SetMarkerColor(2);
+    mtg->Draw();
+    
+    mtgg->SetMarkerStyle(8);
+    mtgg->SetMarkerColor(1);
+    mtgg->SetLineColor(1);
+    mtgg->SetLineWidth(6);
+    mtgg->Draw("SAME");
+    
+    TRatioPlot* rp4 = new TRatioPlot(mtg, mtgg);
+    rp4->Draw();
+    rp4->GetLowerRefYaxis()->SetTitle("ratio");
+    rp4->GetLowerRefGraph()->SetMinimum(0);
+    rp4->GetLowerRefGraph()->SetMaximum(2);
+    rp4->SetSeparationMargin(0.0);
+    rp4->GetLowerRefGraph()->SetMarkerStyle(8);
+    
+    rp4->GetUpperPad()->cd();
+    TLegend *leg2 = new TLegend(0.6, 0.8, 0.9, 0.9);
+    leg2->AddEntry(mtgg, "MC", "p");
+    leg2->AddEntry(mtg,"Full Reconstruction", "l");
+    leg2->Draw();
+    
+    TCanvas *c10 = new TCanvas("c10","c10",800,800);//pt for final proton in mc and rp
+    h6_pt_MC->GetXaxis()->SetTitle("P_{T} [GeV/c]");
+    h6_pt_MC->GetXaxis()->SetRangeUser(-0.0001,1.7);
+    h6_pt_MC->SetStats(0);
+    h6_pt_MC->GetYaxis()->SetTitleSize(0.03);
+    h6_pt_MC->GetYaxis()->SetTitle("Momentum");
+    h6_pt_MC->SetLineColor(1);//red plot
+    h6_pt_MC->SetLineWidth(6);
+    h6_pt_MC->Draw();
+    
+    h_pt_RomanPots->SetLineColor(2);//black plot
+    h_pt_RomanPots->SetLineWidth(6);
+    h_pt_RomanPots->Draw("SAME");
+    
+    TLegend *leg5 = new TLegend(0.8, 0.8, 0.9, 0.9);
+    leg5->AddEntry(h6_pt_MC,"MC", "l");
+    leg5->AddEntry(h_pt_RomanPots, "RP", "l");
+    leg5->Draw();
+    
+    TCanvas *Scattered_Electron_P_T = new TCanvas("Scattered_Electron_P_T","Scattered_Electron_P_T",800,800);//final electron P_t
+    h8_pt_MC->GetXaxis()->SetTitle("P_{T} [GeV/c]");
+    h8_pt_MC->GetXaxis()->SetRangeUser(-0.1,3);
+    h8_pt_MC->SetStats(0);
+    h8_pt_MC->GetYaxis()->SetTitleSize(0.03);
+    h8_pt_MC->SetLineColor(1);//red plot
+    h8_pt_MC->SetLineWidth(6);
+    h8_pt_MC->Draw();
+    
+    rcElectronpt->SetLineColor(2);//black plot
+    rcElectronpt->SetLineWidth(6);
+    rcElectronpt->Draw("SAME");
+    
+    TLegend *leg8= new TLegend(0.8, 0.8, 0.9, 0.9);
+    leg8->AddEntry(h8_pt_MC,"MC e", "l");
+    leg8->AddEntry(rcElectronpt, "Recon. e", "l");
+    leg8->Draw();
+    
+    TCanvas *Final_Positron_P_T = new TCanvas("Final_Positron_P_T","Final_Positron_P_T",1600,600);
+    Final_Positron_P_T->Divide(4,1);
+    Final_Positron_P_T->cd(1);//p_t of the positron at the jpsi
+    h7_pt_MC->GetXaxis()->SetTitle("p_{t} [GeV/c]");
+    h7_pt_MC->SetStats(0);
+    h7_pt_MC->GetYaxis()->SetTitleSize(0.03);
+    h7_pt_MC->SetLineColor(1);//red plot
+    h7_pt_MC->SetLineWidth(6);
+    h7_pt_MC->Draw();
+    
+    rcPositronpt->SetLineColor(2);//black plot
+    rcPositronpt->SetLineWidth(6);
+    rcPositronpt->Draw("SAME");
+    
+    TLegend *leg91= new TLegend(0.6, 0.8, 0.9, 0.9);
+    leg91->AddEntry(h7_pt_MC,"MC e^{+}", "l");
+    leg91->AddEntry(rcPositronpt, "Recon. e^{+}", "l");
+    leg91->Draw();
+    
+    Final_Positron_P_T->cd(2);//p_t of the electron at the jpsi
+    h8_pt_MC->GetXaxis()->SetTitle("p_{t} [GeV/c]");
+    h8_pt_MC->GetXaxis()->SetRangeUser(-0.1,4);
+    h8_pt_MC->SetStats(0);
+    h8_pt_MC->GetYaxis()->SetTitleSize(0.03);
+    h8_pt_MC->SetLineColor(4);//red plot
+    h8_pt_MC->SetLineWidth(6);
+    h8_pt_MC->Draw();
+    
+    hjpsi_pt_MC->SetLineColor(1);//red plot
+    hjpsi_pt_MC->SetLineWidth(6);
+    hjpsi_pt_MC->Draw("SAME");
+    
+    rcElectronjpsipt->SetLineColor(2);//black plot
+    rcElectronjpsipt->SetLineWidth(6);
+    rcElectronjpsipt->Draw("SAME");
+    
+    rcElectronpt->SetLineColor(3);//black plot
+    rcElectronpt->SetLineWidth(6);
+    rcElectronpt->Draw("SAME");
+    
+    TLegend *leg92= new TLegend(0.5, 0.7, 0.9, 0.9);
+    leg92->AddEntry(h8_pt_MC,"MC e SC", "l");
+    leg92->AddEntry(hjpsi_pt_MC,"MC e", "l");
+    leg92->AddEntry(rcElectronjpsipt, "Recon. e", "l");
+    leg92->AddEntry(rcElectronpt, "Recon. e SC", "l");
+    leg92->Draw();
+    
+    Final_Positron_P_T->cd(3);//eta of the positron at the jpsi
+    h7_eta_MC->GetXaxis()->SetTitle("#eta");
+    //h7_eta_MC->GetXaxis()->SetRangeUser(-0.1,3);
+    h7_eta_MC->SetStats(0);
+    h7_eta_MC->GetYaxis()->SetTitleSize(0.03);
+    h7_eta_MC->SetLineColor(1);//red plot
+    h7_eta_MC->SetLineWidth(6);
+    h7_eta_MC->Draw();
+    
+    rcPositron->SetLineColor(2);//black plot
+    rcPositron->SetLineWidth(6);
+    rcPositron->Draw("SAME");
+    
+    TLegend *leg93= new TLegend(0.6, 0.8, 0.9, 0.9);
+    leg93->AddEntry(h7_eta_MC,"MC e^{+}", "l");
+    leg93->AddEntry(rcPositron, "Recon. e^{+}", "l");
+    leg93->Draw();
+    
+    Final_Positron_P_T->cd(4);//eta of the electron at the jpsi
+    h8_eta_MC->GetXaxis()->SetTitle("#eta");
+    //h8_eta_MC->GetYaxis()->SetRangeUser(0,3500);
+    h8_eta_MC->GetXaxis()->SetRangeUser(-10,10);
+    h8_eta_MC->SetStats(0);
+    h8_eta_MC->GetYaxis()->SetTitleSize(0.03);
+    h8_eta_MC->SetLineColor(4);//red plot
+    h8_eta_MC->SetLineWidth(6);
+    h8_eta_MC->Draw();
+    
+    hjpsi_eta_MC->SetLineColor(1);//red plot
+    hjpsi_eta_MC->SetLineWidth(6);
+    hjpsi_eta_MC->Draw("SAME");
+    
+    rcElectronjpsieta->SetLineColor(3);//black plot
+    rcElectronjpsieta->SetLineWidth(6);
+    rcElectronjpsieta->Draw("SAME");
+    
+    rcElectron->SetLineColor(2);//black plot
+    rcElectron->SetLineWidth(6);
+    rcElectron->Draw("SAME");
+    
+    TLegend *leg94= new TLegend(0.5, 0.7, 0.9, 0.9);
+    leg94->AddEntry(h8_eta_MC,"MC e SC", "l");
+    leg94->AddEntry(hjpsi_eta_MC,"MC e", "l");
+    leg94->AddEntry(rcElectronjpsieta, "Recon. e", "l");
+    leg94->AddEntry(rcElectron, "Recon. e SC", "l");
+    leg94->Draw();
+    
+    TCanvas *q_sq = new TCanvas("q_sq","q_sq",1200,700);
+    q_sq->Divide(2,1);
+    q_sq->cd(1)->SetLogy();
+    mtqq->GetXaxis()->SetTitle("Q^{2}");
+    mtqq->SetMarkerStyle(8);
+    mtqq->SetMarkerColor(2);
+    mtqq->SetStats(0);
+    mtqq->GetYaxis()->SetTitleSize(0.03);
+    mtqq->SetLineColor(2);
+    mtqq->SetLineWidth(6);
+    mtqq->Draw();
+    
+    mtq->SetMarkerStyle(8);
+    mtq->SetMarkerColor(1);
+    mtq->SetLineColor(1);
+    mtq->Draw("SAME");
+    
+    TRatioPlot* rp3 = new TRatioPlot(mtqq, mtq);
+    rp3->Draw();
+    rp3->GetLowerRefYaxis()->SetTitle("ratio");
+    rp3->GetLowerRefGraph()->SetMinimum(0.4);
+    rp3->GetLowerRefGraph()->SetMaximum(1.2);
+    rp3->SetSeparationMargin(0);
+    rp3->GetLowerRefGraph()->SetMarkerStyle(8);
+    
+    rp3->GetUpperPad()->cd();
+    TLegend *qq2= new TLegend(0.6, 0.8, 0.9, 0.9);
+    qq2->AddEntry(mtq,"MC", "p");
+    qq2->AddEntry(mtqq, "Full Reconstruction", "l");
+    qq2->Draw();
+    
+    q_sq->cd(2)->SetLogy();
+    mtqq_2->GetXaxis()->SetTitle("Q^{2}");
+    mtqq_2->SetStats(0);
+    mtqq_2->SetMarkerStyle(8);
+    mtqq_2->SetMarkerColor(2);
+    mtqq_2->GetYaxis()->SetTitleSize(0.03);
+    mtqq_2->SetLineColor(2);
+    mtqq_2->SetLineWidth(6);
+    mtqq_2->Draw();
+    
+    mtq->SetMarkerStyle(8);
+    mtq->SetMarkerColor(1);
+    mtq->SetLineColor(1);
+    mtq->Draw("SAME");
+    
+    TRatioPlot* rp32 = new TRatioPlot(mtqq_2, mtq);
+    rp32->Draw();
+    rp32->GetLowerRefYaxis()->SetTitle("ratio");
+    rp32->GetLowerRefGraph()->SetMinimum(0.4);
+    rp32->GetLowerRefGraph()->SetMaximum(1.2);
+    rp32->SetSeparationMargin(0);
+    rp32->GetLowerRefGraph()->SetMarkerStyle(8);
+    
+    rp32->GetUpperPad()->cd();
+    TLegend *qq22= new TLegend(0.5, 0.8, 0.9, 0.9);
+    qq22->AddEntry(mtq,"MC", "p");
+    qq22->AddEntry(mtqq_2, "Full Reconstruction EcalEndcap", "l");
+    qq22->Draw();
+    
+    TCanvas *xbjk = new TCanvas("xbjk","xbjk",1400,700);
+    xbjk->Divide(2,1);
+    xbjk->cd(1)->SetLogy();
+    xb1->GetXaxis()->SetTitle("x_{bj}");
+    xb1->GetXaxis()->SetRangeUser(0.0001,0.1);
+    //xb1->GetYaxis()->SetRangeUser(0,6000);
+    xb1->SetStats(0);
+    xb1->GetYaxis()->SetTitleSize(0.03);
+    xb1->SetLineColor(2);//red plot
+    xb1->SetLineWidth(6);
+    xb1->Draw();
+    
+    xb->SetMarkerStyle(8);
+    xb->SetMarkerColor(1);
+    xb->Draw("SAME");
+    
+    auto rp1 = new TRatioPlot(xb1, xb);
+    rp1->Draw();
+    rp1->GetLowerRefYaxis()->SetTitle("ratio");
+    rp1->GetLowerRefGraph()->SetMinimum(0);
+    rp1->GetLowerRefGraph()->SetMaximum(2);
+    rp1->SetSeparationMargin(0.0);
+    rp1->GetLowerRefGraph()->SetMarkerStyle(8);
+    
+    rp1->GetUpperPad()->cd();
+    TLegend *xbjok= new TLegend(0.7, 0.8, 0.9, 0.9);
+    xbjok->AddEntry(xb,"MC", "p");
+    xbjok->AddEntry(xb1, "Full Reconstruction", "l");
+    xbjok->Draw();
+    
+    xbjk->cd(2)->SetLogy();
+    xb2->GetXaxis()->SetTitle("x_{bj}");
+    xb2->GetXaxis()->SetRangeUser(0.0001,0.1);
+    xb2->SetStats(0);
+    xb2->GetYaxis()->SetTitleSize(0.03);
+    xb2->SetLineColor(2);//red plot
+    xb2->SetLineWidth(6);
+    xb2->Draw();
+    
+    xb->SetMarkerStyle(8);
+    xb->SetMarkerColor(1);
+    xb->Draw("SAME");
+    
+    auto rp12 = new TRatioPlot(xb2, xb);
+    rp12->Draw();
+    rp12->GetLowerRefYaxis()->SetTitle("ratio");
+    rp12->GetLowerRefGraph()->SetMinimum(0);
+    rp12->GetLowerRefGraph()->SetMaximum(2);
+    rp12->SetSeparationMargin(0.0);
+    rp12->GetLowerRefGraph()->SetMarkerStyle(8);
+    
+    rp12->GetUpperPad()->cd();
+    TLegend *xbjok1= new TLegend(0.6, 0.8, 0.9, 0.9);
+    xbjok1->AddEntry(xb,"MC", "p");
+    xbjok1->AddEntry(xb2, "Full Reconstruction EcalEnd", "l");
+    xbjok1->Draw();
+    
+    TCanvas *x_v = new TCanvas("x_v","x_v",1400,700);
+    x_v->Divide(2,1);
+    x_v->cd(1)->SetLogy();
+    xv1->GetXaxis()->SetTitle("x_{v}");
+    xv1->SetStats(0);
+    xv1->GetYaxis()->SetTitleSize(0.03);
+    xv1->SetLineColor(2);//red plot
+    xv1->SetLineWidth(6);
+    xv1->Draw();
+    
+    xv->SetMarkerStyle(8);
+    xv->SetMarkerColor(1);
+    xv->Draw("SAME");
+    
+    TRatioPlot* rp2 = new TRatioPlot(xv1, xv);
+    rp2->Draw();
+    rp2->GetLowerRefYaxis()->SetTitle("ratio");
+    rp2->GetLowerRefGraph()->SetMinimum(0);
+    rp2->GetLowerRefGraph()->SetMaximum(2);
+    rp2->SetSeparationMargin(0.0);
+    rp2->GetLowerRefGraph()->SetMarkerStyle(8);
+    
+    rp2->GetUpperPad()->cd();
+    TLegend *x_vv= new TLegend(0.6, 0.8, 0.9, 0.9);
+    x_vv->AddEntry(xv,"MC", "p");
+    x_vv->AddEntry(xv1, "Full Reconstruction", "l");
+    x_vv->Draw();
+    
+    x_v->cd(2)->SetLogy();
+    xv2->GetXaxis()->SetTitle("x_{v}");
+    xv2->SetStats(0);
+    xv2->GetYaxis()->SetTitleSize(0.03);
+    xv2->SetLineColor(2);//red plot
+    xv2->SetLineWidth(6);
+    xv2->Draw();
+    
+    xv->SetMarkerStyle(8);
+    xv->SetMarkerColor(1);
+    xv->Draw("SAME");
+    
+    TRatioPlot* rp22 = new TRatioPlot(xv2, xv);
+    rp22->Draw();
+    rp22->GetLowerRefYaxis()->SetTitle("ratio");
+    rp22->GetLowerRefGraph()->SetMinimum(0);
+    rp22->GetLowerRefGraph()->SetMaximum(2);
+    rp22->SetSeparationMargin(0.0);
+    rp22->GetLowerRefGraph()->SetMarkerStyle(8);
+    
+    rp22->GetUpperPad()->cd();
+    TLegend *x_vv2= new TLegend(0.5, 0.8, 0.9, 0.9);
+    x_vv2->AddEntry(xv,"MC", "p");
+    x_vv2->AddEntry(xv2, "Full Reconstruction EcalEnd", "l");
+    x_vv2->Draw();
+    
+    TCanvas *resolution = new TCanvas("resolution","resolution",1200,1200);
+    resolution->Divide(2,2);
+    resolution->cd(1);
+    diffjpsimass->GetXaxis()->SetRangeUser(-2,2);
+    diffjpsimass->SetMarkerStyle(8);
+    diffjpsimass->SetStats(0);
+    diffjpsimass->SetTitle("#Delta_{J/#psi}^{rel}");
+    diffjpsimass->SetLineWidth(6);
+    diffjpsimass->SetLineColor(1);
+    diffjpsimass->Draw();
+    
+    resolution->cd(2);
+    diffq2_2->GetXaxis()->SetRangeUser(-2,2);
+    diffq2_2->SetLineColor(2);
+    diffq2_2->SetLineWidth(6);
+    diffq2_2->SetTitle("#Delta_{Q^{2}}^{rel}");
+    diffq2_2->SetStats(0);
+    diffq2_2->Draw();
+    diffq2->SetLineColor(1);
+    diffq2->SetLineWidth(6);
+    diffq2->Draw("SAME");
+    
+    TLegend *diffq= new TLegend(0.6, 0.8, 0.9, 0.9);
+    diffq->AddEntry(diffq2,"Recon", "l");
+    diffq->AddEntry(diffq2_2, "Recon EcalEnd", "l");
+    diffq->Draw();
+    
+    resolution->cd(3);
+    difft->GetXaxis()->SetRangeUser(-2,2);
+    difft->SetLineColor(1);
+    difft->SetStats(0);
+    difft->SetTitle("#Delta_{-t}^{rel}");
+    difft->SetLineWidth(6);
+    difft->Draw();
+    
+    resolution->cd(4);
+    diffx_v2->GetXaxis()->SetRangeUser(-2,2);
+    diffx_v2->SetLineColor(2);
+    diffx_v2->SetLineWidth(6);
+    diffx_v2->SetTitle("#Delta_{x_{v}}^{rel}");
+    diffx_v2->SetStats(0);
+    diffx_v2->Draw();
+    diffx_v->SetLineColor(1);
+    diffx_v->SetLineWidth(6);
+    diffx_v->Draw("SAME");
+    
+    TLegend *diffx= new TLegend(0.6, 0.8, 0.9, 0.9);
+    diffx->AddEntry(diffx_v,"Recon", "l");
+    diffx->AddEntry(diffx_v2, "Recon EcalEnd", "l");
+    diffx->Draw();
+    
+    TCanvas *E_minus_pz = new TCanvas("E_minus_pz","E_minus_pz",1200,700);
+    E_minus_pz->Divide(2,1);
+    
+    E_minus_pz->cd(1);
+    mcjpsie_e_minus_pzmc->GetXaxis()->SetTitle("E - P_{z}[GeV]");
+    mcjpsie_e_minus_pzmc->GetXaxis()->SetRangeUser(30,38);
+    mcjpsie_e_minus_pzmc->SetStats(0);
+    mcjpsie_e_minus_pzmc->GetYaxis()->SetTitleSize(0.03);
+    mcjpsie_e_minus_pzmc->SetLineColor(1);//
+    mcjpsie_e_minus_pzmc->SetLineWidth(6);
+    mcjpsie_e_minus_pzmc->Draw();
+    
+    TLegend *mceminuspz = new TLegend(0.6, 0.8, 0.9, 0.9);
+    mceminuspz->AddEntry(mcjpsie_e_minus_pzmc,"MC JPsi e", "l");
+    mceminuspz->Draw();
+    
+    E_minus_pz->cd(2);
+    rcjpsie_e_minus_pz->GetXaxis()->SetTitle("E - P_{z}[GeV]");
+    rcjpsie_e_minus_pz->GetXaxis()->SetRangeUser(30,38);
+    rcjpsie_e_minus_pz->SetStats(0);
+    rcjpsie_e_minus_pz->GetYaxis()->SetTitleSize(0.03);
+    rcjpsie_e_minus_pz->SetLineColor(1);//
+    rcjpsie_e_minus_pz->SetLineWidth(6);
+    rcjpsie_e_minus_pz->Draw();
+    
+    TLegend *rceminuspz = new TLegend(0.6, 0.8, 0.9, 0.9);
+    rceminuspz->AddEntry(rcjpsie_e_minus_pz, "RC JPsi e", "l");
+    rceminuspz->Draw();
+    
+    TCanvas *Inelasticity = new TCanvas("Inelasticity","Inelasticity",800,800);
+    Inelasticity->SetLogy();
+    mcrapid->GetXaxis()->SetTitle("y");
+    mcrapid->SetStats(0);
+    mcrapid->SetTitle("Inelasticity");
+    mcrapid->GetYaxis()->SetTitleSize(0.03);
+    mcrapid->SetLineColor(1);
+    mcrapid->SetLineWidth(6);
+    mcrapid->Draw();
+    
+    TCanvas *Energies = new TCanvas("Energies Comparison","Energies Comparison",800,800);
+    Energies->SetLogy();
+    h2_e_MC->GetXaxis()->SetTitle("E[GeV]");
+    h2_e_MC->GetXaxis()->SetRangeUser(0,30);
+    h2_e_MC->SetStats(0);    h2_e_MC->SetLineColor(1);
+    h2_e_MC->SetLineWidth(6);
+    h2_e_MC->Draw();
+    
+    scat_e_RC->SetLineColor(2);
+    scat_e_RC->SetLineWidth(6);
+    scat_e_RC->Draw("SAME");
+    
+    scat_e_EcalEnd->SetLineColor(3);
+    scat_e_EcalEnd->SetLineWidth(6);
+    scat_e_EcalEnd->Draw("SAME");
+    
+    TLegend *e_MC_RC_EcalEnd = new TLegend(0.6, 0.8, 0.9, 0.9);
+    e_MC_RC_EcalEnd->AddEntry(h2_e_MC,"Scat_e_MC", "l");
+    e_MC_RC_EcalEnd->AddEntry(scat_e_RC, "Scat_e_RC", "l");
+    e_MC_RC_EcalEnd->AddEntry(scat_e_EcalEnd, "Scat_e_EcalEnd", "l");
+    e_MC_RC_EcalEnd->Draw();
+    
+    TCanvas *Ecal_vs_tot_p = new TCanvas("Ecal_vs_tot_p","Ecal_vs_tot_p",800,800);
+    Ecal_vs_pz->GetXaxis()->SetTitle("E/|P|");
+    Ecal_vs_pz->GetXaxis()->SetRangeUser(-1,3);
+    Ecal_vs_pz->SetTitle("Tracking_Energy/Calorimeter_Energy");
+    Ecal_vs_pz->SetStats(0);
+    Ecal_vs_pz->SetLineColor(1);
+    Ecal_vs_pz->SetLineWidth(6);
+    Ecal_vs_pz->Draw();
+    
+    return;
+ 
+}
